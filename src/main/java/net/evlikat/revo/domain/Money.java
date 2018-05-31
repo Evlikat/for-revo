@@ -1,6 +1,7 @@
 package net.evlikat.revo.domain;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 /**
  * Money.
@@ -21,7 +22,7 @@ public class Money implements Comparable<Money> {
     /**
      *
      */
-    public static Money money(long cents) {
+    public static Money cents(long cents) {
         if (cents == 0) {
             return ZERO;
         }
@@ -29,6 +30,13 @@ public class Money implements Comparable<Money> {
             throw new IllegalArgumentException("Negative values for money are not allowed");
         }
         return new Money(cents);
+    }
+
+    /**
+     *
+     */
+    public static Money dollars(float dollars) {
+        return new Money((long) (dollars * 100.0));
     }
 
     public BigDecimal get() {
@@ -45,15 +53,32 @@ public class Money implements Comparable<Money> {
     }
 
     public Money add(Money money) {
-        return money(this.cents + money.cents);
+        return cents(this.cents + money.cents);
     }
 
     public Money withdraw(Money money) {
-        return money(this.cents - money.cents);
+        return cents(this.cents - money.cents);
     }
 
     @Override
     public String toString() {
         return get().toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Money money = (Money) o;
+        return cents == money.cents;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(cents);
     }
 }

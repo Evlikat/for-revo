@@ -1,6 +1,7 @@
 package net.evlikat.revo.services;
 
 import net.evlikat.revo.domain.Account;
+import net.evlikat.revo.domain.Money;
 
 import java.util.List;
 
@@ -21,6 +22,8 @@ public interface AccountService {
     Account createNew(String name);
 
     List<Account> all();
+
+    void transfer(Account account1, Account account2, Money moneyToMove);
 
     /**
      * Transfers money from source account to destination account

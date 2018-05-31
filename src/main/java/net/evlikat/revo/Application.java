@@ -2,7 +2,6 @@ package net.evlikat.revo;
 
 import com.google.gson.Gson;
 import net.evlikat.revo.domain.Account;
-import net.evlikat.revo.domain.Money;
 import net.evlikat.revo.services.AccountService;
 import net.evlikat.revo.services.BusinessException;
 import net.evlikat.revo.services.InMemoryAccountService;
@@ -45,9 +44,6 @@ public class Application {
 
     public static void main(String[] args) {
         Application application = new Application();
-
-        //TODO: remove
-        initApp(application);
 
         port(8080);
 
@@ -99,13 +95,5 @@ public class Application {
             res.type(CONTENT_TYPE);
             return GSON.toJson(new Message("not found"));
         });
-    }
-
-    private static void initApp(Application application) {
-        Account mom = application.accountService.createNew("Mom");
-        Account dad = application.accountService.createNew("Dad");
-        Account bank = application.accountService.get(1L);
-        bank.drainTo(Money.money(15L), mom);
-        bank.drainTo(Money.money(35L), dad);
     }
 }

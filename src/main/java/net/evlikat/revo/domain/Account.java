@@ -1,6 +1,6 @@
 package net.evlikat.revo.domain;
 
-import static net.evlikat.revo.domain.Money.money;
+import java.util.Objects;
 
 /**
  * Account.
@@ -32,8 +32,8 @@ public class Account implements MoneyDestination {
         return money;
     }
 
-    public boolean has(long amount) {
-        return money.compareTo(money(amount)) >= 0;
+    public boolean has(Money amount) {
+        return money.compareTo(amount) >= 0;
     }
 
     @Override
@@ -44,6 +44,25 @@ public class Account implements MoneyDestination {
     public void drainTo(Money money, MoneyDestination newDestination) {
         this.money = this.money.withdraw(money);
         newDestination.accept(money);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Account account = (Account) o;
+        return Objects.equals(id, account.id) &&
+            Objects.equals(name, account.name) &&
+            Objects.equals(money, account.money);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name, money);
     }
 
     @Override
