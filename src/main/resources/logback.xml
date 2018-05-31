@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ This portion of the source code is copyrighted by Thumbtack Technology LLC,
+  ~ all rights reserved, and is subject to the terms of a license agreement
+  ~ in which it constitutes “Pre-existing work” or "Licensed Product".
+  -->
+
+<configuration scan="true" scanPeriod="30 seconds">
+    <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener" />
+
+    <appender name="funnyDevelopment" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d %highlight(%-5level) %cyan(%logger) - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="funnyDevelopment" />
+    </root>
+</configuration>
