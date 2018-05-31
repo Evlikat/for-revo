@@ -10,6 +10,7 @@ import net.evlikat.revo.web.Message;
 import net.evlikat.revo.web.TransferTask;
 import spark.Request;
 import spark.Response;
+import spark.Spark;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,6 +35,7 @@ public class Application {
     private static final String CONTENT_TYPE = "application/json";
 
     private final AccountService accountService;
+    private volatile boolean running = false;
 
     public Application() {
         // mmm, such DI
@@ -42,14 +44,21 @@ public class Application {
 
     public static void main(String[] args) {
         Application application = new Application();
+        application.init();
+    }
 
+    public boolean isRunning() {
+        return running;
+    }
+
+    void init() {
         port(8080);
 
         get("/account/:accountId",
             (req, res) -> {
                 res.type(CONTENT_TYPE);
                 long accountId = Long.parseLong(req.params(":accountId"));
-                Account newAccount = application.accountService.get(accountId);
+                Account newAccount = accountService.get(accountId);
                 AccountInfo result = AccountInfo.from(newAccount);
                 return result == null ? null : GSON.toJson(result);
             });
@@ -57,7 +66,7 @@ public class Application {
         get("/account",
             (req, res) -> {
                 res.type(CONTENT_TYPE);
-                List<AccountInfo> result = application.accountService.all().stream()
+                List<AccountInfo> result = accountService.all().stream()
                     .map(AccountInfo::from)
                     .collect(Collectors.toList());
                 return result == null ? null : GSON.toJson(result);
@@ -66,7 +75,7 @@ public class Application {
         post("/account/:name",
             (req, res) -> {
                 String name = req.params(":name");
-                Account newAccount = application.accountService.createNew(name);
+                Account newAccount = accountService.createNew(name);
                 AccountInfo result = AccountInfo.from(newAccount);
                 res.type(CONTENT_TYPE);
                 return result == null ? null : GSON.toJson(result);
@@ -76,7 +85,7 @@ public class Application {
             (Request req, Response res) -> {
                 res.type(CONTENT_TYPE);
                 TransferTask transferTask = GSON.fromJson(req.body(), TransferTask.class);
-                application.accountService.deposit(
+                accountService.deposit(
                     transferTask.getDestinationId(),
                     transferTask.getAmount());
                 return GSON.toJson(new Message("operation complete"));
@@ -86,7 +95,7 @@ public class Application {
             (Request req, Response res) -> {
                 res.type(CONTENT_TYPE);
                 TransferTask transferTask = GSON.fromJson(req.body(), TransferTask.class);
-                application.accountService.withdraw(
+                accountService.withdraw(
                     transferTask.getSourceId(),
                     transferTask.getAmount());
                 return GSON.toJson(new Message("operation complete"));
@@ -96,7 +105,7 @@ public class Application {
             (Request req, Response res) -> {
                 res.type(CONTENT_TYPE);
                 TransferTask transferTask = GSON.fromJson(req.body(), TransferTask.class);
-                application.accountService.transfer(
+                accountService.transfer(
                     transferTask.getSourceId(),
                     transferTask.getDestinationId(),
                     transferTask.getAmount());
@@ -124,5 +133,19 @@ public class Application {
             res.type(CONTENT_TYPE);
             return GSON.toJson(new Message("internal error"));
         });
+
+        running = true;
+    }
+
+    public void stop() {
+        Spark.stop();
+    }
+
+    public void awaitInitialization() {
+        Spark.awaitInitialization();
+    }
+
+    public void awaitStop() {
+        Spark.awaitInitialization();
     }
 }
