@@ -52,7 +52,7 @@ public class ConcurrentAccountTest {
     @Test
     public void shouldTransfer() throws Exception {
         int totalAccounts = 3;
-        // to prevent not enough money
+        // to prevent "not enough money" exception
         int initMoney = 10_000;
         int maxOperations = 10_000;
         Set<Long> ids = IntStream.range(0, totalAccounts)

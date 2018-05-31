@@ -22,7 +22,11 @@ import static net.evlikat.revo.domain.Money.zero;
 public final class InMemoryAccountService implements AccountService {
 
     private final AtomicLong seq = new AtomicLong(1);
+    /**
+     * This might be a data source, but I decided to keep it simple.
+     */
     private final ConcurrentHashMap<Long, Account> accounts = new ConcurrentHashMap<>();
+
     private final ConcurrentHashMap<Long, Lock> locks = new ConcurrentHashMap<>();
 
     /**
@@ -45,27 +49,30 @@ public final class InMemoryAccountService implements AccountService {
     }
 
     @Override
-    public void transfer(Account srcAccount, Account dstAccount, Money moneyToMove) {
-        if (zero().equals(moneyToMove)) {
+    public void transfer(Account sourceAccount, Account destinationAccount, Money moneyToTransfer) {
+        if (zero().equals(moneyToTransfer)) {
             throw new BusinessException("at least one cents must be transferred");
         }
-        if (Objects.equals(srcAccount.getId(), dstAccount.getId())) {
+        if (Objects.equals(sourceAccount.getId(), destinationAccount.getId())) {
             throw new BusinessException("source and destination accounts must be different");
         }
-        Lock lock1 = locks.computeIfAbsent(srcAccount.getId(), id -> new ReentrantLock(true));
-        Lock lock2 = locks.computeIfAbsent(dstAccount.getId(), id -> new ReentrantLock(true));
-        if (srcAccount.getId() > dstAccount.getId()) {
+        Lock lock1 = locks.computeIfAbsent(sourceAccount.getId(), id -> new ReentrantLock(true));
+        Lock lock2 = locks.computeIfAbsent(destinationAccount.getId(), id -> new ReentrantLock(true));
+
+        // avoid deadlocks
+        if (sourceAccount.getId() > destinationAccount.getId()) {
             Lock tmp = lock1;
             lock1 = lock2;
             lock2 = tmp;
         }
+
         lock1.lock();
         lock2.lock();
         try {
-            if (!srcAccount.has(moneyToMove)) {
+            if (!sourceAccount.has(moneyToTransfer)) {
                 throw new BusinessException("source account does not have enough money");
             }
-            srcAccount.drainTo(moneyToMove, dstAccount);
+            sourceAccount.drainTo(moneyToTransfer, destinationAccount);
         } finally {
             lock1.unlock();
             lock2.unlock();

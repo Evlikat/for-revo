@@ -21,9 +21,19 @@ public interface AccountService {
      */
     Account createNew(String name);
 
+    /**
+     * @return accounts
+     */
     List<Account> all();
 
-    void transfer(Account account1, Account account2, Money moneyToMove);
+    /**
+     * Transfers money from source account to destination account
+     *
+     * @param sourceAccount      source account
+     * @param destinationAccount destination account
+     * @param moneyToTransfer    money to transfer
+     */
+    void transfer(Account sourceAccount, Account destinationAccount, Money moneyToTransfer);
 
     /**
      * Transfers money from source account to destination account

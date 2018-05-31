@@ -8,8 +8,6 @@ import net.evlikat.revo.services.InMemoryAccountService;
 import net.evlikat.revo.web.AccountInfo;
 import net.evlikat.revo.web.Message;
 import net.evlikat.revo.web.TransferTask;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import spark.Request;
 import spark.Response;
 
@@ -18,6 +16,7 @@ import java.util.stream.Collectors;
 
 import static spark.Spark.exception;
 import static spark.Spark.get;
+import static spark.Spark.internalServerError;
 import static spark.Spark.notFound;
 import static spark.Spark.port;
 import static spark.Spark.post;
@@ -30,7 +29,6 @@ import static spark.Spark.post;
  */
 public class Application {
 
-    private static final Logger LOG = LoggerFactory.getLogger(Application.class);
     private static final Gson GSON = new Gson();
 
     private static final String CONTENT_TYPE = "application/json";
@@ -94,6 +92,11 @@ public class Application {
         notFound((req, res) -> {
             res.type(CONTENT_TYPE);
             return GSON.toJson(new Message("not found"));
+        });
+
+        internalServerError((req, res) -> {
+            res.type(CONTENT_TYPE);
+            return GSON.toJson(new Message("internal error"));
         });
     }
 }
