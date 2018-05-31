@@ -36,7 +36,7 @@ public class Money implements Comparable<Money> {
      *
      */
     public static Money dollars(float dollars) {
-        return new Money((long) (dollars * 100.0));
+        return cents(Math.round(dollars * 100.0));
     }
 
     public BigDecimal get() {
@@ -56,7 +56,7 @@ public class Money implements Comparable<Money> {
         return cents(this.cents + money.cents);
     }
 
-    public Money withdraw(Money money) {
+    public Money subtract(Money money) {
         return cents(this.cents - money.cents);
     }
 

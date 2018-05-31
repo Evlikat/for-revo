@@ -50,17 +50,68 @@ public class ConcurrentAccountTest {
      *
      */
     @Test
+    public void shouldDeposit() throws Exception {
+        int totalAccounts = 3;
+        int maxOperations = 10_000;
+        IntStream.range(0, totalAccounts)
+            .mapToObj(i -> "Name #" + i)
+            .forEach(service::createNew);
+
+        Random rnd = new Random();
+
+        IntStream.range(0, maxOperations)
+            .parallel()
+            .forEach(num -> service.deposit(rnd.nextInt(totalAccounts) + 1, 1));
+
+        assertThat(service.all()).hasSize(totalAccounts);
+        assertThat(service.all().stream()
+            .map(Account::getMoney)
+            .map(Money::get)
+            .reduce(BigDecimal.ZERO, BigDecimal::add))
+            .isEqualTo(BigDecimal.valueOf(maxOperations, 2));
+    }
+
+    /**
+     *
+     */
+    @Test
+    public void shouldWithdraw() throws Exception {
+        int totalAccounts = 3;
+        // to prevent "not enough money" exception
+        int initMoney = 1000;
+        int maxOperations = 10_000;
+        IntStream.range(0, totalAccounts)
+            .mapToObj(i -> "Name #" + i)
+            .map(service::createNew)
+            .forEach(account -> account.deposit(Money.dollars(initMoney)));
+
+        Random rnd = new Random();
+
+        IntStream.range(0, maxOperations)
+            .parallel()
+            .forEach(num -> service.withdraw(rnd.nextInt(totalAccounts) + 1, 1));
+
+        assertThat(service.all()).hasSize(totalAccounts);
+        assertThat(service.all().stream()
+            .map(Account::getMoney)
+            .map(Money::get)
+            .reduce(BigDecimal.ZERO, BigDecimal::add))
+            .isEqualTo(BigDecimal.valueOf(totalAccounts * initMoney * 100 - maxOperations, 2));
+    }
+
+    /**
+     *
+     */
+    @Test
     public void shouldTransfer() throws Exception {
         int totalAccounts = 3;
         // to prevent "not enough money" exception
         int initMoney = 10_000;
         int maxOperations = 10_000;
-        Set<Long> ids = IntStream.range(0, totalAccounts)
+        IntStream.range(0, totalAccounts)
             .mapToObj(i -> "Name #" + i)
             .map(service::createNew)
-            .peek(account -> account.accept(Money.dollars(initMoney)))
-            .map(Account::getId)
-            .collect(toSet());
+            .forEach(account -> account.deposit(Money.dollars(initMoney)));
 
         Random rnd = new Random();
 
@@ -73,7 +124,6 @@ public class ConcurrentAccountTest {
                     id2 = rnd.nextInt(totalAccounts) + 1;
                 } while (id2 == id1);
                 service.transfer(id1, id2, 1);
-                System.out.println(num + ":: " + id1 + " -> " + id2);
             });
         assertThat(service.all()).hasSize(totalAccounts);
         assertThat(service.all().stream()

@@ -72,6 +72,26 @@ public class Application {
                 return result == null ? null : GSON.toJson(result);
             });
 
+        post("/deposit",
+            (Request req, Response res) -> {
+                res.type(CONTENT_TYPE);
+                TransferTask transferTask = GSON.fromJson(req.body(), TransferTask.class);
+                application.accountService.deposit(
+                    transferTask.getDestinationId(),
+                    transferTask.getAmount());
+                return GSON.toJson(new Message("operation complete"));
+            });
+
+        post("/withdraw",
+            (Request req, Response res) -> {
+                res.type(CONTENT_TYPE);
+                TransferTask transferTask = GSON.fromJson(req.body(), TransferTask.class);
+                application.accountService.withdraw(
+                    transferTask.getSourceId(),
+                    transferTask.getAmount());
+                return GSON.toJson(new Message("operation complete"));
+            });
+
         post("/transfer",
             (Request req, Response res) -> {
                 res.type(CONTENT_TYPE);
@@ -82,6 +102,12 @@ public class Application {
                     transferTask.getAmount());
                 return GSON.toJson(new Message("operation complete"));
             });
+
+        exception(IllegalArgumentException.class, (ex, req, res) -> {
+            res.type(CONTENT_TYPE);
+            res.body(GSON.toJson(new Message(ex.getMessage())));
+            res.status(400);
+        });
 
         exception(BusinessException.class, (ex, req, res) -> {
             res.type(CONTENT_TYPE);

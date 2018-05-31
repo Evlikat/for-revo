@@ -37,13 +37,17 @@ public class Account implements MoneyDestination {
     }
 
     @Override
-    public void accept(Money money) {
+    public void deposit(Money money) {
         this.money = this.money.add(money);
     }
 
+    public void withdraw(Money money) {
+        this.money = this.money.subtract(money);
+    }
+
     public void drainTo(Money money, MoneyDestination newDestination) {
-        this.money = this.money.withdraw(money);
-        newDestination.accept(money);
+        this.money = this.money.subtract(money);
+        newDestination.deposit(money);
     }
 
     @Override

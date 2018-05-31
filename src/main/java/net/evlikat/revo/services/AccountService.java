@@ -22,6 +22,38 @@ public interface AccountService {
     Account createNew(String name);
 
     /**
+     * Deposits money from source account to destination account
+     *
+     * @param destinationId id of destination account
+     * @param amount        amount in cents
+     */
+    void deposit(long destinationId, long amount);
+
+    /**
+     * Transfers money from source account to destination account
+     *
+     * @param destinationAccount destination account
+     * @param moneyToTransfer    money to transfer
+     */
+    void deposit(Account destinationAccount, Money moneyToTransfer);
+
+    /**
+     * Withdraws money from source account
+     *
+     * @param sourceAccount   source account
+     * @param moneyToTransfer money to transfer
+     */
+    void withdraw(Account sourceAccount, Money moneyToTransfer);
+
+    /**
+     * Withdraws money from source account
+     *
+     * @param sourceId id of source account
+     * @param amount   amount in cents
+     */
+    void withdraw(long sourceId, long amount);
+
+    /**
      * @return accounts
      */
     List<Account> all();

@@ -8,5 +8,5 @@ package net.evlikat.revo.domain;
  */
 public interface MoneyDestination {
 
-    void accept(Money money);
+    void deposit(Money money);
 }

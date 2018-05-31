@@ -51,7 +51,7 @@ public final class InMemoryAccountService implements AccountService {
     @Override
     public void transfer(Account sourceAccount, Account destinationAccount, Money moneyToTransfer) {
         if (zero().equals(moneyToTransfer)) {
-            throw new BusinessException("at least one cents must be transferred");
+            throw new BusinessException("at least one cent must be transferred");
         }
         if (Objects.equals(sourceAccount.getId(), destinationAccount.getId())) {
             throw new BusinessException("source and destination accounts must be different");
@@ -83,16 +83,62 @@ public final class InMemoryAccountService implements AccountService {
      *
      */
     @Override
-    public void transfer(long source, long destination, long amount) {
-        Account srcAccount = accounts.get(source);
+    public void transfer(long sourceId, long destinationId, long amount) {
+        Account srcAccount = accounts.get(sourceId);
         if (srcAccount == null) {
             throw new BusinessException("source account not found");
         }
-        Account dstAccount = accounts.get(destination);
+        Account dstAccount = accounts.get(destinationId);
         if (dstAccount == null) {
             throw new BusinessException("destination account not found");
         }
         transfer(srcAccount, dstAccount, Money.cents(amount));
+    }
+
+    @Override
+    public void deposit(long destinationId, long amount) {
+        Account dstAccount = accounts.get(destinationId);
+        if (dstAccount == null) {
+            throw new BusinessException("destination account not found");
+        }
+        deposit(dstAccount, Money.cents(amount));
+    }
+
+    @Override
+    public void deposit(Account destinationAccount, Money moneyToTransfer) {
+        if (zero().equals(moneyToTransfer)) {
+            throw new BusinessException("at least one cent must be transferred");
+        }
+        Lock lock = locks.computeIfAbsent(destinationAccount.getId(), id -> new ReentrantLock(true));
+        lock.lock();
+        try {
+            destinationAccount.deposit(moneyToTransfer);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public void withdraw(long sourceId, long amount) {
+        Account srcAccount = accounts.get(sourceId);
+        if (srcAccount == null) {
+            throw new BusinessException("source account not found");
+        }
+        withdraw(srcAccount, Money.cents(amount));
+    }
+
+    @Override
+    public void withdraw(Account sourceAccount, Money moneyToTransfer) {
+        if (zero().equals(moneyToTransfer)) {
+            throw new BusinessException("at least one cent must be transferred");
+        }
+        Lock lock = locks.computeIfAbsent(sourceAccount.getId(), id -> new ReentrantLock(true));
+        lock.lock();
+        try {
+            sourceAccount.withdraw(moneyToTransfer);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
