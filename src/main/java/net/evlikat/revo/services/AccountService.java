@@ -1,11 +1,8 @@
 package net.evlikat.revo.services;
 
 import net.evlikat.revo.domain.Account;
-import net.evlikat.revo.domain.Money;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
+import java.util.List;
 
 /**
  * AccountService.
@@ -13,78 +10,32 @@ import java.util.concurrent.locks.Lock;
  * @author Roman Prokhorov
  * @version 1.0
  */
-public final class AccountService {
-
-    private final AtomicLong seq = new AtomicLong(1);
-    private final ConcurrentHashMap<Long, LockableAccount> accounts = new ConcurrentHashMap<>();
-
-    public AccountService() {
-        Account bank = createNew("bank");
-        bank.accept(Money.money(1_000_000_00));
-        // IDs reserved for TOP clients
-        seq.addAndGet(99);
-    }
+public interface AccountService {
 
     /**
+     * Creates a new account with specified name
      *
+     * @param name name
+     * @return new account object
      */
-    public Account createNew(String name) {
-        Long id = seq.getAndIncrement();
-        Account account = new Account(id, name, Money.zero());
-        accounts.put(id, new LockableAccount(account));
-        return account;
-    }
+    Account createNew(String name);
+
+    List<Account> all();
 
     /**
+     * Transfers money from source account to destination account
      *
+     * @param sourceId      id of source account
+     * @param destinationId id of destination account
+     * @param amount        amount in cents
      */
-    public void transfer(long source, long destination, long amount) {
-        // TODO: error handling
-        if (amount == 0) {
-            return;
-        }
-        Money moneyToMove = Money.money(amount);
-        if (source == destination) {
-            return;
-        }
-        LockableAccount srcAccount = accounts.get(source);
-        if (srcAccount == null) {
-            return;
-        }
-        LockableAccount dstAccount = accounts.get(destination);
-        if (dstAccount == null) {
-            return;
-        }
-        Lock lock1;
-        Lock lock2;
-        if (source < destination) {
-            lock1 = srcAccount.lock();
-            lock2 = dstAccount.lock();
-        } else {
-            lock1 = dstAccount.lock();
-            lock2 = srcAccount.lock();
-        }
-        lock1.lock();
-        lock2.lock();
-        try {
-            if (!srcAccount.has(amount)) {
-                return;
-            }
-            srcAccount.drainTo(moneyToMove, dstAccount);
-        } finally {
-            lock1.unlock();
-            lock2.unlock();
-        }
-    }
+    void transfer(long sourceId, long destinationId, long amount);
 
     /**
+     * Returns account object by specified id
      *
+     * @param accountId account id
+     * @return account or null if not found
      */
-    public Account get(Long id) {
-        LockableAccount lockableAccount = accounts.get(id);
-        if (lockableAccount == null) {
-            return null;
-        }
-        return lockableAccount.account();
-    }
+    Account get(Long accountId);
 }
