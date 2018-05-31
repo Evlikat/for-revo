@@ -53,8 +53,7 @@ public class ApplicationTest {
     @After
     public void tearDown() throws Exception {
         application.stop();
-        // Wait until server stops
-        Thread.sleep(1000);
+        awaitServerStops();
     }
 
     /**
@@ -71,6 +70,54 @@ public class ApplicationTest {
             AccountInfo.class, 200);
 
         assertThat(momInfo.getMoney()).isEqualTo(BigDecimal.TEN.setScale(2, BigDecimal.ROUND_FLOOR));
+    }
+
+    /**
+     *
+     */
+    @Test
+    public void shouldNotDepositMoneyWhenInvalidValue() throws Exception {
+        response(client.POST("http://localhost:8080/withdraw")
+                .content(new StringContentProvider(GSON.toJson(deposit(mom.getId(), -5_00)))),
+            Message.class, 400);
+
+        AccountInfo momInfo = response(
+            client.GET("http://localhost:8080/account/" + mom.getId()),
+            AccountInfo.class, 200);
+
+        assertThat(momInfo.getMoney()).isEqualTo(BigDecimal.valueOf(0).setScale(2, BigDecimal.ROUND_FLOOR));
+    }
+
+    /**
+     *
+     */
+    @Test
+    public void shouldNotWithdrawMoneyWhenNotEnough() throws Exception {
+        response(client.POST("http://localhost:8080/withdraw")
+                .content(new StringContentProvider(GSON.toJson(withdraw(mom.getId(), 5_00)))),
+            Message.class, 400);
+
+        AccountInfo momInfo = response(
+            client.GET("http://localhost:8080/account/" + mom.getId()),
+            AccountInfo.class, 200);
+
+        assertThat(momInfo.getMoney()).isEqualTo(BigDecimal.valueOf(0).setScale(2, BigDecimal.ROUND_FLOOR));
+    }
+
+    /**
+     *
+     */
+    @Test
+    public void shouldNotWithdrawMoneyWhenInvalidValue() throws Exception {
+        response(client.POST("http://localhost:8080/withdraw")
+                .content(new StringContentProvider(GSON.toJson(withdraw(mom.getId(), -5_00)))),
+            Message.class, 400);
+
+        AccountInfo momInfo = response(
+            client.GET("http://localhost:8080/account/" + mom.getId()),
+            AccountInfo.class, 200);
+
+        assertThat(momInfo.getMoney()).isEqualTo(BigDecimal.valueOf(0).setScale(2, BigDecimal.ROUND_FLOOR));
     }
 
     /**
@@ -117,6 +164,91 @@ public class ApplicationTest {
         assertThat(dadInfo.getMoney()).isEqualTo(BigDecimal.valueOf(7).setScale(2, BigDecimal.ROUND_FLOOR));
     }
 
+    /**
+     *
+     */
+    @Test
+    public void shouldDepositAndNotTransferMoneyWhenInvalidValue() throws Exception {
+        response(client.POST("http://localhost:8080/deposit")
+                .content(new StringContentProvider(GSON.toJson(deposit(mom.getId(), 10_00)))),
+            Message.class, 200);
+
+        response(client.POST("http://localhost:8080/transfer")
+                .content(new StringContentProvider(GSON.toJson(transfer(mom.getId(), dad.getId(), -7_00)))),
+            Message.class, 400);
+
+        AccountInfo momInfo = response(
+            client.GET("http://localhost:8080/account/" + mom.getId()),
+            AccountInfo.class, 200);
+        AccountInfo dadInfo = response(
+            client.GET("http://localhost:8080/account/" + dad.getId()),
+            AccountInfo.class, 200);
+
+        assertThat(momInfo.getMoney()).isEqualTo(BigDecimal.valueOf(10).setScale(2, BigDecimal.ROUND_FLOOR));
+        assertThat(dadInfo.getMoney()).isEqualTo(BigDecimal.valueOf(0).setScale(2, BigDecimal.ROUND_FLOOR));
+    }
+
+    /**
+     *
+     */
+    @Test
+    public void shouldDepositAndNotTransferMoneyWhenSameAccounts() throws Exception {
+        response(client.POST("http://localhost:8080/deposit")
+                .content(new StringContentProvider(GSON.toJson(deposit(mom.getId(), 10_00)))),
+            Message.class, 200);
+
+        response(client.POST("http://localhost:8080/transfer")
+                .content(new StringContentProvider(GSON.toJson(transfer(mom.getId(), mom.getId(), 7_00)))),
+            Message.class, 400);
+
+        AccountInfo momInfo = response(
+            client.GET("http://localhost:8080/account/" + mom.getId()),
+            AccountInfo.class, 200);
+        AccountInfo dadInfo = response(
+            client.GET("http://localhost:8080/account/" + dad.getId()),
+            AccountInfo.class, 200);
+
+        assertThat(momInfo.getMoney()).isEqualTo(BigDecimal.valueOf(10).setScale(2, BigDecimal.ROUND_FLOOR));
+        assertThat(dadInfo.getMoney()).isEqualTo(BigDecimal.valueOf(0).setScale(2, BigDecimal.ROUND_FLOOR));
+    }
+
+    /**
+     *
+     */
+    @Test
+    public void shouldDepositAndNotTransferMoneyWhenNotExistingAccount() throws Exception {
+        response(client.POST("http://localhost:8080/deposit")
+                .content(new StringContentProvider(GSON.toJson(deposit(mom.getId(), 10_00)))),
+            Message.class, 200);
+
+        response(client.POST("http://localhost:8080/transfer")
+                .content(new StringContentProvider(GSON.toJson(transfer(mom.getId(), 99999, 7_00)))),
+            Message.class, 400);
+
+        AccountInfo momInfo = response(
+            client.GET("http://localhost:8080/account/" + mom.getId()),
+            AccountInfo.class, 200);
+
+        assertThat(momInfo.getMoney()).isEqualTo(BigDecimal.valueOf(10).setScale(2, BigDecimal.ROUND_FLOOR));
+    }
+
+    /**
+     *
+     */
+    @Test
+    public void shouldNotTransferMoneyFromNotExistingAccount() throws Exception {
+
+        response(client.POST("http://localhost:8080/transfer")
+                .content(new StringContentProvider(GSON.toJson(transfer(99999, mom.getId(), 7_00)))),
+            Message.class, 400);
+
+        AccountInfo momInfo = response(
+            client.GET("http://localhost:8080/account/" + mom.getId()),
+            AccountInfo.class, 200);
+
+        assertThat(momInfo.getMoney()).isEqualTo(BigDecimal.valueOf(0).setScale(2, BigDecimal.ROUND_FLOOR));
+    }
+
     private TransferTask deposit(long id, long amount) {
         TransferTask transferTask = new TransferTask();
         transferTask.setDestinationId(id);
@@ -146,5 +278,11 @@ public class ApplicationTest {
     private static <T> T response(ContentResponse response, Class<T> target, int expectedStatus) throws Exception {
         assertThat(response.getStatus()).isEqualTo(expectedStatus);
         return GSON.fromJson(response.getContentAsString(), target);
+    }
+
+    private void awaitServerStops() throws InterruptedException {
+        while (application.isRunning()) {
+            Thread.sleep(10);
+        }
     }
 }

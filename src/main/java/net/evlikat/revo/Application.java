@@ -35,7 +35,6 @@ public class Application {
     private static final String CONTENT_TYPE = "application/json";
 
     private final AccountService accountService;
-    private volatile boolean running = false;
 
     public Application() {
         // mmm, such DI
@@ -48,7 +47,15 @@ public class Application {
     }
 
     public boolean isRunning() {
-        return running;
+        // A hack: Spark does not allow to synchronously await server stops
+        try {
+            Spark.port(9999);
+            // if there port is set, that it is not running
+            return false;
+        } catch (IllegalStateException ex) {
+            // if an exception is thrown, that it is running and protects its state
+            return true;
+        }
     }
 
     void init() {
@@ -133,8 +140,6 @@ public class Application {
             res.type(CONTENT_TYPE);
             return GSON.toJson(new Message("internal error"));
         });
-
-        running = true;
     }
 
     public void stop() {
@@ -142,10 +147,6 @@ public class Application {
     }
 
     public void awaitInitialization() {
-        Spark.awaitInitialization();
-    }
-
-    public void awaitStop() {
         Spark.awaitInitialization();
     }
 }
